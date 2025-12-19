@@ -19,7 +19,7 @@ looker.plugins.visualizations.add({
       type: "string",
       label: "Context / Persona",
       display: "text",
-      default: "You are a master storyteller narrating a gameplay session based on raw event logs.",
+      default: "You are the Chronarch, an ancient observer of the Great Loom. Narrate this 'Void Weaver' session. Interpret 'Silk' as a mystical resource, 'Stitches' as building energy, and 'Knots' as finishing moves. Describe the Loom-Walker's journey through nodes like a grand tapestry being woven.",
       section: "Configuration"
     },
     modelName: {
