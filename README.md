@@ -32,7 +32,7 @@ In the visualization edit panel within Looker:
 
 -   **Gemini API Key**: Paste your key from Google AI Studio.
 -   **Context / Persona**: (Optional) Define how the AI should tell the story (e.g., "You are a tactical commander briefing a team" or "You are a fantasy bard recountng a legend").
--   **Model Name**: Defaults to `gemini-1.5-flash` for speed, but can be changed to `gemini-1.5-pro` for deeper analysis.
+-   **Model Name**: Defaults to `gemini-3-pro-preview` for high-quality narrative generation.
 
 ## How to Use
 

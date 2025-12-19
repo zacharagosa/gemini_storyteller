@@ -6,35 +6,35 @@
  */
 
 looker.plugins.visualizations.add({
-    // Configuration options for the visualization
-    options: {
-        apiKey: {
-            type: "string",
-            label: "Gemini API Key",
-            display: "text",
-            placeholder: "Enter your Google AI Studio API Key",
-            section: "Configuration"
-        },
-        promptContext: {
-            type: "string",
-            label: "Context / Persona",
-            display: "text",
-            default: "You are a master storyteller narrating a gameplay session based on raw event logs.",
-            section: "Configuration"
-        },
-        modelName: {
-            type: "string",
-            label: "Model Name",
-            display: "text",
-            default: "gemini-3-pro-preview",
-            placeholder: "e.g., gemini-3-pro-preview, gemini-1.5-flash",
-            section: "Configuration"
-        }
+  // Configuration options for the visualization
+  options: {
+    apiKey: {
+      type: "string",
+      label: "Gemini API Key",
+      display: "text",
+      placeholder: "Enter your Google AI Studio API Key",
+      section: "Configuration"
     },
+    promptContext: {
+      type: "string",
+      label: "Context / Persona",
+      display: "text",
+      default: "You are a master storyteller narrating a gameplay session based on raw event logs.",
+      section: "Configuration"
+    },
+    modelName: {
+      type: "string",
+      label: "Model Name",
+      display: "text",
+      default: "gemini-3-pro-preview",
+      placeholder: "e.g., gemini-3-pro-preview, gemini-1.5-flash",
+      section: "Configuration"
+    }
+  },
 
-    // Set up the initial state of the visualization
-    create: function (element, config) {
-        element.innerHTML = `
+  // Set up the initial state of the visualization
+  create: function (element, config) {
+    element.innerHTML = `
       <style>
         .gemini-narrative-container {
           font-family: 'Open Sans', sans-serif;
@@ -208,62 +208,62 @@ looker.plugins.visualizations.add({
       </div>
     `;
 
-        this._generateBtn = element.querySelector("#generateBtn");
-        this._statusMsg = element.querySelector("#statusMsg");
-        this._dashboardContent = element.querySelector("#dashboardContent");
-        this._summaryText = element.querySelector("#summaryText");
-        this._metricsGrid = element.querySelector("#metricsGrid");
-        this._timelineText = element.querySelector("#timelineText");
-        this._initialMsg = element.querySelector("#initialMsg");
+    this._generateBtn = element.querySelector("#generateBtn");
+    this._statusMsg = element.querySelector("#statusMsg");
+    this._dashboardContent = element.querySelector("#dashboardContent");
+    this._summaryText = element.querySelector("#summaryText");
+    this._metricsGrid = element.querySelector("#metricsGrid");
+    this._timelineText = element.querySelector("#timelineText");
+    this._initialMsg = element.querySelector("#initialMsg");
 
-        // Bind click event
-        this._generateBtn.addEventListener("click", () => {
-            this.generateNarrative();
-        });
-    },
+    // Bind click event
+    this._generateBtn.addEventListener("click", () => {
+      this.generateNarrative();
+    });
+  },
 
-    // Render the visualization in response to data or config changes
-    updateAsync: function (data, element, config, queryResponse, details, done) {
-        this.clearErrors();
-        this._data = data;
-        this._config = config;
-        this._queryResponse = queryResponse;
+  // Render the visualization in response to data or config changes
+  updateAsync: function (data, element, config, queryResponse, details, done) {
+    this.clearErrors();
+    this._data = data;
+    this._config = config;
+    this._queryResponse = queryResponse;
 
-        // Check if API key is present
-        if (!config.apiKey) {
-            this.addError({
-                title: "Missing API Key",
-                message: "Please enter your Gemini API Key in the visualization settings."
-            });
-            this._generateBtn.disabled = true;
-        } else {
-            this._generateBtn.disabled = false;
-        }
+    // Check if API key is present
+    if (!config.apiKey) {
+      this.addError({
+        title: "Missing API Key",
+        message: "Please enter your Gemini API Key in the visualization settings."
+      });
+      this._generateBtn.disabled = true;
+    } else {
+      this._generateBtn.disabled = false;
+    }
 
-        done();
-    },
+    done();
+  },
 
-    // Core logic to generate narrative
-    generateNarrative: async function () {
-        if (!this._data || this._data.length === 0) return;
+  // Core logic to generate narrative
+  generateNarrative: async function () {
+    if (!this._data || this._data.length === 0) return;
 
-        const apiKey = this._config.apiKey;
-        const context = this._config.promptContext || "You are a master storyteller narrating a gameplay session based on raw event logs.";
+    const apiKey = this._config.apiKey;
+    const context = this._config.promptContext || "You are a master storyteller narrating a gameplay session based on raw event logs.";
 
-        // 1. Prepare Data Payload
-        const maxRows = 500;
-        const headers = this._queryResponse.fields.dimensions.map(d => d.label_short || d.label).join(", ");
+    // 1. Prepare Data Payload
+    const maxRows = 500;
+    const headers = this._queryResponse.fields.dimensions.map(d => d.label_short || d.label).join(", ");
 
-        let csvContent = headers + "\n";
-        this._data.slice(0, maxRows).forEach(row => {
-            const rowText = this._queryResponse.fields.dimensions.map(field => {
-                return LookerCharts.Utils.textForCell(row[field.name]);
-            }).join(", ");
-            csvContent += rowText + "\n";
-        });
+    let csvContent = headers + "\n";
+    this._data.slice(0, maxRows).forEach(row => {
+      const rowText = this._queryResponse.fields.dimensions.map(field => {
+        return LookerCharts.Utils.textForCell(row[field.name]);
+      }).join(", ");
+      csvContent += rowText + "\n";
+    });
 
-        // 2. Construct Prompt for JSON output
-        const prompt = `
+    // 2. Construct Prompt for JSON output
+    const prompt = `
       ${context}
       
       Analyze the following log of game events.
@@ -285,83 +285,83 @@ looker.plugins.visualizations.add({
       ${csvContent}
     `;
 
-        // 3. UI Updates
-        this._generateBtn.disabled = true;
-        this._statusMsg.style.display = "block";
-        this._initialMsg.style.display = "none";
-        this._dashboardContent.style.display = "none";
+    // 3. UI Updates
+    this._generateBtn.disabled = true;
+    this._statusMsg.style.display = "block";
+    this._initialMsg.style.display = "none";
+    this._dashboardContent.style.display = "none";
 
-        try {
-            // 4. Call Gemini API
-            const modelName = this._config.modelName || "gemini-1.5-flash";
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }]
-                })
-            });
+    try {
+      // 4. Call Gemini API
+      const modelName = this._config.modelName || "gemini-3-pro-preview";
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      });
 
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status} ${response.statusText}`);
-            }
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
 
-            const result = await response.json();
+      const result = await response.json();
 
-            // 5. Parse and Display Result
-            if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
-                let rawText = result.candidates[0].content.parts[0].text;
+      // 5. Parse and Display Result
+      if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
+        let rawText = result.candidates[0].content.parts[0].text;
 
-                // Cleanup markdown code blocks if Gemini ignores instruction
-                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Cleanup markdown code blocks if Gemini ignores instruction
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
 
-                const data = JSON.parse(rawText);
+        const data = JSON.parse(rawText);
 
-                // Render Summary
-                this._summaryText.innerText = data.overview || "No summary provided.";
+        // Render Summary
+        this._summaryText.innerText = data.overview || "No summary provided.";
 
-                // Render Metrics
-                this._metricsGrid.innerHTML = "";
-                if (data.metrics && Array.isArray(data.metrics)) {
-                    data.metrics.forEach(metric => {
-                        const div = document.createElement("div");
-                        div.className = "metric-card";
-                        div.innerHTML = `
+        // Render Metrics
+        this._metricsGrid.innerHTML = "";
+        if (data.metrics && Array.isArray(data.metrics)) {
+          data.metrics.forEach(metric => {
+            const div = document.createElement("div");
+            div.className = "metric-card";
+            div.innerHTML = `
               <div class="metric-value">${metric.value}</div>
               <div class="metric-label">${metric.label}</div>
             `;
-                        this._metricsGrid.appendChild(div);
-                    });
-                }
-
-                // Render Timeline (Marked.js is ideal, but simple replacement works for basic bold/headers)
-                let timelineHtml = data.timeline || "No timeline provided.";
-                timelineHtml = timelineHtml
-                    .replace(/### (.*?)\n/g, '<h3>$1</h3>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br>');
-
-                this._timelineText.innerHTML = timelineHtml;
-
-                this._dashboardContent.style.display = "flex";
-            } else {
-                this._initialMsg.innerText = "No narrative generated. Please check your data and API key.";
-                this._initialMsg.style.display = "block";
-            }
-
-        } catch (error) {
-            console.error("Gemini Generation Error:", error);
-            this._initialMsg.innerHTML = `<span class="error-msg">Error: ${error.message}. Check console for details.</span>`;
-            this._initialMsg.style.display = "block";
-        } finally {
-            this._generateBtn.disabled = false;
-            this._statusMsg.style.display = "none";
+            this._metricsGrid.appendChild(div);
+          });
         }
+
+        // Render Timeline (Marked.js is ideal, but simple replacement works for basic bold/headers)
+        let timelineHtml = data.timeline || "No timeline provided.";
+        timelineHtml = timelineHtml
+          .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br>');
+
+        this._timelineText.innerHTML = timelineHtml;
+
+        this._dashboardContent.style.display = "flex";
+      } else {
+        this._initialMsg.innerText = "No narrative generated. Please check your data and API key.";
+        this._initialMsg.style.display = "block";
+      }
+
+    } catch (error) {
+      console.error("Gemini Generation Error:", error);
+      this._initialMsg.innerHTML = `<span class="error-msg">Error: ${error.message}. Check console for details.</span>`;
+      this._initialMsg.style.display = "block";
+    } finally {
+      this._generateBtn.disabled = false;
+      this._statusMsg.style.display = "none";
     }
+  }
 });
