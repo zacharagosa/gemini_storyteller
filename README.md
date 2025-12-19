@@ -1,6 +1,18 @@
 # Gemini Storyteller Looker Visualization
 
+![Gemini Storyteller Demo](storyteller_viz.gif)
+
 A custom Looker visualization that uses Google's Gemini AI to transform raw event logs into compelling gameplay narratives. This visualization takes structured data from Looker queries and uses generative AI to provide qualitative context and storytelling.
+
+## 🚀 Quick Start with Demo Data
+
+We've provided a sample dataset to help you test the visualization immediately.
+
+1.  Download `demo_data.csv` from this repository.
+2.  Upload it to your Looker instance as a [File-based Explore](https://cloud.google.com/looker/docs/create-explores-from-files).
+3.  Select the **Gemini Storyteller** visualization.
+4.  Experience the narrative of "Void Weaver: The Crystal Loom"!
+
 
 ## Features
 
