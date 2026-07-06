@@ -8,11 +8,19 @@
 looker.plugins.visualizations.add({
   // Configuration options for the visualization
   options: {
-    apiKey: {
+    backendUrl: {
       type: "string",
-      label: "Gemini API Key",
+      label: "Backend Server URL",
       display: "text",
-      placeholder: "Enter your Google AI Studio API Key",
+      default: "http://localhost:8080",
+      placeholder: "e.g., https://your-backend-api.com",
+      section: "Configuration"
+    },
+    backendToken: {
+      type: "string",
+      label: "Backend Auth Token",
+      display: "text",
+      placeholder: "Optional: Secret token to authenticate with the backend",
       section: "Configuration"
     },
     promptContext: {
@@ -26,8 +34,8 @@ looker.plugins.visualizations.add({
       type: "string",
       label: "Model Name",
       display: "text",
-      default: "gemini-3-pro-preview",
-      placeholder: "e.g., gemini-3-pro-preview, gemini-1.5-flash",
+      default: "gemini-3.5-flash",
+      placeholder: "e.g., gemini-3.5-flash, gemini-1.5-flash",
       section: "Configuration"
     }
   },
@@ -229,11 +237,11 @@ looker.plugins.visualizations.add({
     this._config = config;
     this._queryResponse = queryResponse;
 
-    // Check if API key is present
-    if (!config.apiKey) {
+    // Check if Backend URL is present
+    if (!config.backendUrl) {
       this.addError({
-        title: "Missing API Key",
-        message: "Please enter your Gemini API Key in the visualization settings."
+        title: "Missing Backend Server URL",
+        message: "Please enter your backend server URL in the visualization settings."
       });
       this._generateBtn.disabled = true;
     } else {
@@ -247,7 +255,8 @@ looker.plugins.visualizations.add({
   generateNarrative: async function () {
     if (!this._data || this._data.length === 0) return;
 
-    const apiKey = this._config.apiKey;
+    const backendUrl = this._config.backendUrl || "http://localhost:8080";
+    const backendToken = this._config.backendToken;
     const context = this._config.promptContext || "You are a master storyteller narrating a gameplay session based on raw event logs.";
 
     // 1. Prepare Data Payload
@@ -292,19 +301,23 @@ looker.plugins.visualizations.add({
     this._dashboardContent.style.display = "none";
 
     try {
-      // 4. Call Gemini API
-      const modelName = this._config.modelName || "gemini-3-pro-preview";
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+      // 4. Call Secure Backend API
+      const modelName = this._config.modelName || "gemini-3.5-flash";
+      const headersMap = {
+        "Content-Type": "application/json"
+      };
+      if (backendToken) {
+        headersMap["Authorization"] = `Bearer ${backendToken}`;
+      }
+      
+      // Ensure backendUrl doesn't have trailing slash
+      const cleanBackendUrl = backendUrl.replace(/\/$/, "");
+      const response = await fetch(`${cleanBackendUrl}/api/generate-narrative`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: headersMap,
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
+          prompt: prompt,
+          model_name: modelName
         })
       });
 
@@ -315,8 +328,8 @@ looker.plugins.visualizations.add({
       const result = await response.json();
 
       // 5. Parse and Display Result
-      if (result.candidates && result.candidates.length > 0 && result.candidates[0].content) {
-        let rawText = result.candidates[0].content.parts[0].text;
+      if (result.text) {
+        let rawText = result.text;
 
         // Cleanup markdown code blocks if Gemini ignores instruction
         rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -351,12 +364,12 @@ looker.plugins.visualizations.add({
 
         this._dashboardContent.style.display = "flex";
       } else {
-        this._initialMsg.innerText = "No narrative generated. Please check your data and API key.";
+        this._initialMsg.innerText = "No narrative generated. Please check your backend connection.";
         this._initialMsg.style.display = "block";
       }
 
     } catch (error) {
-      console.error("Gemini Generation Error:", error);
+      console.error("Narrative Generation Error:", error);
       this._initialMsg.innerHTML = `<span class="error-msg">Error: ${error.message}. Check console for details.</span>`;
       this._initialMsg.style.display = "block";
     } finally {
