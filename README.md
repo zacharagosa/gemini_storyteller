@@ -21,12 +21,29 @@ We've provided a sample dataset to help you test the visualization immediately.
 -   **📖 Chronological Narrative**: Reconstructs events into a readable, engaging story.
 -   **🎭 Customizable Persona**: Control the "voice" of the AI through the visualization settings.
 
+## Architecture
+
+This visualization uses a **secure backend proxy** pattern to call the Gemini API. Instead of exposing an API key in the client-side JavaScript, all AI requests are routed through an authenticated backend server.
+
+```
+┌──────────────┐     HTTPS      ┌──────────────────┐    Vertex AI    ┌─────────────┐
+│    Looker    │ ──────────────► │  Cloud Run       │ ──────────────► │  Gemini API │
+│  (Browser)   │  Bearer Token  │  Backend Server  │  Service Acct   │             │
+└──────────────┘                └──────────────────┘                 └─────────────┘
+```
+
+**Benefits:**
+- 🔒 No API keys exposed in client-side code
+- 🔑 Backend authenticates via Google Cloud service account (Vertex AI)
+- 🛡️ Optional `NARRATIVE_SECRET_TOKEN` to restrict who can call the proxy endpoint
+- 🌐 HTTPS endpoint required by Looker custom visualizations
+
 ## Setup Instructions
 
 ### 1. Requirements
 
 -   **Looker**: Access to add custom visualizations (Admin permissions usually required).
--   **Google Gemini API Key**: Obtain a free API key from [Google AI Studio](https://aistudio.google.com/).
+-   **Backend Server**: A deployed instance of the backend proxy (e.g., on Google Cloud Run). See [Backend Setup](#backend-setup) below.
 
 ### 2. Adding to Looker
 
@@ -35,16 +52,67 @@ We've provided a sample dataset to help you test the visualization immediately.
 3.  Fill in the following details:
     -   **Id**: `gemini_storyteller`
     -   **Label**: `Gemini Storyteller`
-    -   **Main**: Upload or host the `gemini_narrator.js` file and provide the URL. 
-        -   *Note: For testing, you can drag the `.js` file directly if your environment supports it, but hosting on a CDN (like GitHub Pages or a public bucket) is recommended for production.*
+    -   **Main**: The HTTPS URL where `gemini_narrator.js` is hosted.
+        -   Example: `https://your-cloud-run-service.run.app/gemini_narrator.js`
+        -   ⚠️ **Looker requires HTTPS** for custom visualization bundles. HTTP URLs will not work.
 
 ### 3. Configuration
 
 In the visualization edit panel within Looker:
 
--   **Gemini API Key**: Paste your key from Google AI Studio.
--   **Context / Persona**: (Optional) Define how the AI should tell the story (e.g., "You are a tactical commander briefing a team" or "You are a fantasy bard recountng a legend").
--   **Model Name**: Defaults to `gemini-3-pro-preview` for high-quality narrative generation.
+| Setting | Description | Example |
+|---------|-------------|---------|
+| **Backend Server URL** | The HTTPS URL of your backend proxy server | `https://your-service.run.app` |
+| **Backend Auth Token** | Secret token to authenticate with the backend (must match `NARRATIVE_SECRET_TOKEN` on the server) | `my-secret-token-123` |
+| **Context / Persona** | *(Optional)* Define how the AI should tell the story | `"You are a tactical commander briefing a team"` |
+| **Model Name** | The Gemini model to use for generation | `gemini-3.5-flash` |
+
+## Backend Setup
+
+The backend proxy server handles secure communication with the Gemini API via Vertex AI.
+
+### Environment Variables
+
+Create a `.env` file in the backend server directory (never commit this file):
+
+```bash
+PROJECT_ID=your-gcp-project-id
+NARRATIVE_SECRET_TOKEN=your-secret-token-here
+```
+
+### Deploy to Cloud Run
+
+```bash
+# From the backend server directory
+./deploy_cloud_run.sh
+```
+
+This will:
+1. Build the frontend assets
+2. Build a Docker container with the Flask server
+3. Deploy to Cloud Run with the necessary environment variables
+4. Provide an HTTPS URL for both the API and the visualization script
+
+### API Endpoint
+
+The backend exposes:
+
+- **`GET /gemini_narrator.js`** — Serves the visualization JavaScript bundle over HTTPS
+- **`POST /api/generate-narrative`** — Proxies narrative generation requests to Vertex AI
+
+**Request format:**
+```json
+{
+  "prompt": "Your compiled prompt with event data...",
+  "model_name": "gemini-3.5-flash"
+}
+```
+
+**Headers:**
+```
+Authorization: Bearer <NARRATIVE_SECRET_TOKEN>
+Content-Type: application/json
+```
 
 ## How to Use
 
@@ -54,7 +122,15 @@ In the visualization edit panel within Looker:
     -   Event Description
     -   User/Player ID
 2.  **Select the Viz**: Choose the **Gemini Storyteller** from the visualization picker.
-3.  **Run & Analyze**: Click the **Analyze Session** button within the visualization to send the data to Gemini and generate your story.
+3.  **Configure Settings**: Set the Backend Server URL and Auth Token in the visualization settings panel.
+4.  **Run & Analyze**: Click the **Analyze Session** button within the visualization to send the data to Gemini and generate your story.
+
+## Security Notes
+
+- **`.env` files are gitignored** and must never be committed
+- The `NARRATIVE_SECRET_TOKEN` is passed as an environment variable at deploy time, not hardcoded
+- The backend uses **Google Cloud service account credentials** (via Vertex AI) — no API keys are stored
+- The visualization script contains **no secrets** — the auth token is entered by the user in Looker's visualization settings panel
 
 ---
 
